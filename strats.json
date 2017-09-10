@@ -1,0 +1,10 @@
+[
+    {
+        "name":"**We didn't start the fire**",
+        "description":"You can't fire at another squad before they have shot your squad."
+    },
+    {
+        "name":"**I'm making a clip**",
+        "description":"Sniper only"
+    }
+]
