@@ -1,30 +1,51 @@
 const Discord = require("discord.js");
-const strats = require("./strats.json");
 const ffmpeg = require("ffmpeg");
-const YTDL = require("ytdl-core");
+const ytdl = require("ytdl-core");
+const request = require("request");
+const fs = require("fs");
+const getYoutubeID = require("get-youtube-id");
+const fetchVideoInfo = require("youtube-info");
 const client = new Discord.Client();
-const PREFIX = "!";
 
-function play(connection, message) {
-    var server = servers[message.guild.id];
+var strats = JSON.parse(fs.readFileSync("./strats.json", "utf-8"));
+var config = JSON.parse(fs.readFileSync("./settings.json", "utf-8"));
 
-    server.dispatcher = connection.playStream(YTDL(server.queue[0], {filter: "audioonly"}));
+const yt_api_key = config.yt_api_key;
+const bot_controller = config.bot_controller;
+const prefix = config.prefix;
+const discord_token = config.discord_token;
 
-    server.queue.shift();
-
-    server.dispatcher.on("end", function() {
-        if(server.queue[0]) play(connection, message);
-        else connection.disconnect();
-    });
-}
+client.on("ready", function() {
+    console.log("Ready");
+});
 
 var servers = {};
 
+var queue = [];
+var queueNames = [];
+var isPlaying = false;
+var dispatcher = null;
+var voiceChannel = null;
+var skipReq = 0;
+var skippers = [];
+
 client.on("message", function(message) {
     if(message.author.equals(client.user)) return;
-    if(!message.content.startsWith(PREFIX)) return;
+    if(!message.content.startsWith(prefix)) return;
 
-    var args = message.content.substring(PREFIX.length).split(" ");
+    var args = message.content.substring(prefix.length).split(" ");
+
+    if(!servers[message.guild.id]) {
+        guild[message.guild.id] = {
+            queue = [],
+            queueNames = [],
+            isPlaying = false,
+            dispatcher = null,
+            voiceChannel = null,
+            skipReq = 0,
+            skippers = []
+        };
+    }
 
     switch (args[0]) {
         case "help":
@@ -38,66 +59,144 @@ client.on("message", function(message) {
     
         case "strat":
             var strat = Math.floor(Math.random()*strats.length);
-            message.reply(strats[strat].name + ", " + strats[strat].description);
+            message.reply("**" + strats[strat].name + "**, " + strats[strat].description);
             break;
         
         case "brexit":
             message.reply("For proof that I (Jack/in3ert) really did do brexit then go forward too www.jackdidbrexit.top");
             break;
-
         case "play":
-            if(!args[1]) {
-                message.channel.sendMessage("Please provide a link");
-                return;
+            if(queue.length > 0 || isPlaying) {
+                getID(args[1], function(id) {
+                    add_to_queue(id, message);
+                    fetchVideoInfo(id, function(err, videoInfo) {
+                        if(err) throw new Error(err);
+                        message.channel.sendMessage("Added to queue: **" + videoInfo.title + "**");
+                        queueNames.push(videoInfo.title);
+                    });
+                });
+            } else {
+                isPlaying = true;
+                getID(args[1], function(id) {
+                    queue.push("placeholder");
+                    playMusic(id, message);
+                    fetchVideoInfo(id, function(err, videoInfo) {
+                        if(err) throw new Error(err);
+                        message.channel.sendMessage("Now playing: **" + videoInfo.title + "**");
+                    });
+                });
             }
-
-            if(!args[1].) {
-                
-            }
-
-            if(!message.member.voiceChannel) {
-                message.channel.sendMessage("You must be in a voice channel");
-                return;
-            }
-
-            if(!servers[message.guild.id]) servers[message.guild.id] = {
-                queue: []
-            }
-
-            var server = servers[message.guild.id];
-
-            server.queue.push(args[1]);
-
-            if(!message.guild.voiceConnection) message.member.voiceChannel.join().then(function(connection) {
-                play(connection, message);
-            });
             break;
 
         case "skip":
-            var server = servers[message.guild.id];
-
-            if(server.dispatcher) {
-                server.dispatcher.end();
-                message.channel.sendMessage("The current song has been skipped by " + message.member);
+            if(queue <= 0) {
+                message.channel.sendMessage("There are no songs to be skipped!");
+            } else {
+                if(skippers.indexOf(message.author.id) == -1) {
+                    skippers.push(message.author.id);
+                    skipReq++;
+                    if(skipReq >= Math.ceil((voiceChannel.members.size -1) /2)) {
+                        skip_song(message);
+                        message.channel.sendMessage("Your skip has been noted. Skipping now!");
+                    } else {
+                        message.channel.sendMessage("Your skip has been noted. You need **" + Math.ceil((voiceChannel.members.size - 1)/2 - skipReq) + "** more skip votes!");
+                    }
+                 } else {
+                      message.reply("You have allready voted to skip!");
+                 }
             }
             break;
-            
-        case "stop":
-            var server = servers[message.guild.id];
-                
-            if(message.guild.voiceConnection) message.guild.voiceConnection.disconnect();
-            break;
-
+        
         case "queue":
-            getInfo(servers[message.guild.id].queue ,function(err, info) {
-                message.channel.sendMessage("The queue is " + info.title);
-            });
+            var list = "```";
+            for(var i = 0;i < queueNames.length; i++) {
+                var temp = (i + 1) + ": " + queueNames[i] + (i == 0 ? " **(Current Song)**" : "") + "\n";
+                if((list + temp).length <= 2000 - 3) {
+                    list += temp;
+                } else {
+                    list += "```";
+                    message.channel.sendMessage(list);
+                    list = "```";
+                }
+            }
+            list += "```";
+            message.channel.sendMessage(list);
             break;
-
+        
         default:
             message.channel.sendMessage("Invalid command");
     }
 });
 
+function skip_song() {
+    dispatcher.end();
+    if(queue.length > 1) {
+        playMusic(queue[0], message); 
+    } else {
+        skipReq = 0;
+        skippers = [];
+    }
+}
 
-client.login("MzU2MDQzNzgyNzAzMjg0MjI0.DJVp0A.st-zmLNhieG7QsM6lOxc9pvd4vE");
+function playMusic(id, message) {
+    voiceChannel = message.member.voiceChannel;
+
+    voiceChannel.join().then(function(connection) {
+        stream = ytdl("https://www.youtube.com/watch?v=" + id, {
+            filter: "audioonly"
+        });
+        skipReq = 0;
+        skippers = [];
+
+        dispatcher = connection.playStream(stream);
+        dispatcher.on("end", function() {
+            skipReq = 0;
+            skippers = [];
+            queue.shift();
+            queueNames.shift();
+            if(queue.length == 0) {
+                queue = [];
+                queueNames = [];
+                isPlaying = false;
+            } else {
+                setTimeout(function () {
+                    playMusic(queue[0], message);
+                }, 500)
+            }
+        });
+    });
+}
+
+function getID(string, callback) {
+    if(isYoutube(string)) {
+        callback(getYoutubeID(string));
+    } else {
+        search_video(string, function(id) {
+            callback(id);
+        });
+    }
+}
+
+function add_to_queue(stringID, message) {
+    if(isYoutube(stringID)) {
+        queue.push(getYoutubeID(stringID));
+    } else {
+        queue.push(stringID);
+    }
+}
+
+function search_video(query, callback) {
+    request("https://www.googleapis.com/youtube/v3/search?part=id&type=video&q=" + encodeURIComponent(query) + "&key=" + yt_api_key, function(error, response, body) {
+        var json = JSON.parse(body)
+        if(!json.items[0]) callback("-3qVOGtrIrk");
+        else {
+            callback(json.items[0].id.videoId);
+        }
+    });
+}
+
+function isYoutube(string) {
+    return string.toLowerCase().indexOf("youtube.com") > -1;
+}
+
+client.login(discord_token);

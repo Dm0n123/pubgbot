@@ -1,10 +1,78 @@
 [
-    {
-        "name":"**We didn't start the fire**",
-        "description":"You can't fire at another squad before they have shot your squad."
-    },
-    {
-        "name":"**I'm making a clip**",
-        "description":"Sniper only"
-    }
+	{
+		"name":"We didn't start the fire",
+		"description":"You can't fire at another squad before they have shot your squad."
+	},
+	{
+		"name":"Boosted",
+		"description":"You can only heal with boosters."
+	},
+	{
+		"name":"Pumped up kicks",
+		"description":"You can only shoot while a boosters is active."
+	},
+	{
+		"name":"Back to school",
+		"description":"Double barrel shotgun, boosters, glock and mini 14 only."
+	},
+	{
+		"name":"One in the chamber",
+		"description":"You can't carry any ammo, you have to use your chambered bullets."
+	},
+	{
+		"name":"CS:GO",
+		"description":"No ADS unless 8x scope."
+	},
+	{
+		"name":"Iron man",
+		"description":"Iron sights only."
+	},
+	{
+		"name":"Hitman",
+		"description":"Pistol only."
+	},
+	{
+		"name":"This better be good",
+		"description":"You can only loot 1 house."
+	},
+	{
+		"name":"Kill confirmed",
+		"description":"Only 1 enemy can be downed at a time."
+	},
+	{
+		"name":"2pac",
+		"description":"You can only shoot from vehicles."
+	},
+	{
+		"name":"Minecraft hardcore",
+		"description":"You can't be revived."
+	},
+	{
+		"name":"Ghillie man",
+		"description":"Only allowed to shoot when prone."
+	},
+	{
+		"name":"Fuckboy",
+		"description":"You can only loot fuckboy shacks."
+	},
+	{
+		"name":"Pull the trigger motherfucker",
+		"description":"You can't shoot at downed enemies"
+	},
+	{
+		"name":"Afraid of heights",
+		"description":"You can't go above the first story of a building"
+	},
+	{
+		"name":"Red or dead",
+		"description":"You can only loot red houses"
+	},
+	{
+		"name":"Limited space",
+		"description":"You can't carry a backpack."
+	},
+	{
+		"name":"Shroud",
+		"description":"Engage in any enemy you see or hear"
+	}
 ]
