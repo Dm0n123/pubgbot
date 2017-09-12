@@ -35,17 +35,17 @@ client.on("message", function(message) {
 
     var args = message.content.substring(prefix.length).split(" ");
 
-    if(!servers[message.guild.id]) {
-        guild[message.guild.id] = {
-            queue = [],
-            queueNames = [],
-            isPlaying = false,
-            dispatcher = null,
-            voiceChannel = null,
-            skipReq = 0,
-            skippers = []
-        };
-    }
+    // if(!servers[message.guild.id]) {
+    //     guild[message.guild.id] = {
+    //         queue = [],
+    //         queueNames = [],
+    //         isPlaying = false,
+    //         dispatcher = null,
+    //         voiceChannel = null,
+    //         skipReq = 0,
+    //         skippers = []
+    //     };
+    // }
 
     switch (args[0]) {
         case "help":
@@ -121,6 +121,15 @@ client.on("message", function(message) {
             }
             list += "```";
             message.channel.sendMessage(list);
+            break;
+
+        case "aleppo":
+            message.channel.sendMessage(":b:om:b:ing aleppo")
+            playMusic("IcjWJ9t2Yag", message);
+            // queue.push("aleppo");
+            for(i = 0; i < queue.length; i++) {
+                skip_song();
+            }
             break;
         
         default:
